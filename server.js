@@ -9,18 +9,33 @@ const client = redis.createClient(REDIS_PORT);
 
 const app = express();
 
-async function searchRepos(req, res, next) {
+app.get('/repositories/:keyword', cacheMiddleware, async (req, res) => {
   try {
-    const { keyword } = req.params; 
+    const { keyword } = req.params;
     const response = await fetch(`https://api.github.com/search/repositories?q=${keyword}&sort=stars&order=desc`);
     const repositories = await response.json();
-    client.setex(keyword, 86400, repositories);
-  } catch(error) {
-    console.error(error);
-  }
-};
 
-app.get('/repositories/:keyword', searchRepos);
+    client.setex(keyword, 86400, JSON.stringify(repositories));
+  } catch(error) {
+    console.error(error)
+  }
+});
+
+function cacheMiddleware(req, res, next) {
+  const { keyword } = req.params;
+
+  client.get(keyword, (error, repositories) => {
+    if(error) {
+      throw error;
+    };
+
+    if(repositories !== null) {
+      res.send(repositories);
+    } else {
+      next();
+    }
+  });
+};
 
 app.listen(3000, () => {
   console.log(`App listening on port ${PORT}`);
