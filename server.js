@@ -17,7 +17,7 @@ app.get('/repositories/:keyword', cacheMiddleware, async (req, res) => {
 
     client.setex(keyword, 86400, JSON.stringify(repositories));
   } catch(error) {
-    console.error(error)
+    console.error(error);
   }
 });
 
